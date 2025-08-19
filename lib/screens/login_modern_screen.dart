@@ -580,12 +580,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = kIsWeb && screenWidth > 768;
     
-    // Debug temporaire pour forcer le layout web
-    if (kIsWeb) {
-      return _buildWebLayout(context);
-    } else {
-      return _buildMobileLayout(context);
-    }
+    // FORCE LAYOUT WEB POUR TEST
+    return _buildWebLayout(context);
   }
 
   // Design mobile/tablette avec TabBar (inchangé)
@@ -632,6 +628,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   // Nouveau design web avec sidebar navigation
   Widget _buildWebLayout(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.red, // TEST - Pour voir si cette méthode est appelée
+      appBar: AppBar(
+        title: const Text('TEST - LAYOUT WEB ACTIF'),
+        backgroundColor: Colors.red,
+      ),
       body: Row(
         children: [
           // Sidebar navigation
