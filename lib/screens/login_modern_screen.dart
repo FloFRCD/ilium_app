@@ -567,7 +567,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _screens = [
-      HomeModernScreen(user: widget.user),
+      HomeModernScreen(user: widget.user, onNavigateToTab: (index) => setState(() => _currentIndex = index)),
       EnhancedCoursesScreen(user: widget.user),
       SavedCoursesScreen(user: widget.user),
       ProfileScreen(user: widget.user),
@@ -580,7 +580,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = kIsWeb && screenWidth > 768;
     
-    if (isWeb) {
+    // Debug temporaire pour forcer le layout web
+    if (kIsWeb) {
       return _buildWebLayout(context);
     } else {
       return _buildMobileLayout(context);
