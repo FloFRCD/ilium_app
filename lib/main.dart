@@ -1,5 +1,6 @@
 // Flutter framework
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 // Firebase
 import 'package:firebase_core/firebase_core.dart';
@@ -103,6 +104,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = kIsWeb && screenWidth > 768;
+    
+    if (isWeb) {
+      return _buildWebLayout(context);
+    } else {
+      return _buildMobileLayout(context);
+    }
+  }
+
+  // Layout mobile avec TabBar (design original préservé)
+  Widget _buildMobileLayout(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -122,6 +135,58 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Nouveau layout web avec sidebar
+  Widget _buildWebLayout(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.red, // TEST pour vérifier que ça marche
+      appBar: AppBar(
+        title: const Text('🎉 LAYOUT WEB FONCTIONNE !'),
+        backgroundColor: Colors.green,
+      ),
+      body: Row(
+        children: [
+          // Sidebar navigation
+          Container(
+            width: 280,
+            color: Colors.blue,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text('SIDEBAR WEB', style: TextStyle(color: Colors.white, fontSize: 20)),
+                ),
+                _buildNavItem('🏠', 'Accueil', 0),
+                _buildNavItem('📚', 'Cours', 1),
+                _buildNavItem('📋', 'Programme', 2),
+                _buildNavItem('💾', 'Sauvegardés', 3),
+                _buildNavItem('👤', 'Profil', 4),
+              ],
+            ),
+          ),
+          
+          // Contenu principal
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(String icon, String label, int index) {
+    final isActive = _currentIndex == index;
+    
+    return ListTile(
+      leading: Text(icon, style: const TextStyle(fontSize: 24)),
+      title: Text(label, style: TextStyle(color: isActive ? Colors.yellow : Colors.white)),
+      onTap: () => setState(() => _currentIndex = index),
+      tileColor: isActive ? Colors.white.withOpacity(0.1) : null,
     );
   }
 }
