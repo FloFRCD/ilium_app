@@ -1,0 +1,201 @@
+{
+  "matiere": "Mathématiques",
+  "niveaux": {
+    "CP": [
+      {
+        "title": "Les nombres jusqu'à 10",
+        "description": "Découvrir, nommer et écrire les nombres de 0 à 10. Compter une collection d'objets.",
+        "keywords": ["nombre", "compter", "chiffre", "collection"]
+      },
+      {
+        "title": "Les nombres jusqu'à 20",
+        "description": "Étendre la connaissance des nombres jusqu'à 20. Décomposer et recomposer les nombres.",
+        "keywords": ["nombre", "vingt", "décomposition"]
+      },
+      {
+        "title": "Addition et soustraction",
+        "description": "Premières opérations d'addition et de soustraction avec des petits nombres.",
+        "keywords": ["addition", "soustraction", "calculer", "plus", "moins"]
+      },
+      {
+        "title": "Les formes géométriques",
+        "description": "Reconnaître et nommer les formes géométriques de base : carré, rectangle, triangle, cercle.",
+        "keywords": ["géométrie", "forme", "carré", "rectangle", "triangle", "cercle"]
+      }
+    ],
+    "6ème": [
+      {
+        "title": "Les nombres entiers et décimaux",
+        "description": "Consolider la connaissance des nombres entiers. Découvrir les nombres décimaux et leurs écritures.",
+        "keywords": ["entier", "décimal", "virgule", "écriture"]
+      },
+      {
+        "title": "Les fractions",
+        "description": "Comprendre la notion de fraction. Écrire une fraction. Placer des fractions sur une droite graduée.",
+        "keywords": ["fraction", "numérateur", "dénominateur", "partage"]
+      },
+      {
+        "title": "Proportionnalité",
+        "description": "Reconnaître une situation de proportionnalité. Utiliser un tableau de proportionnalité.",
+        "keywords": ["proportion", "tableau", "règle de trois", "coefficient"]
+      },
+      {
+        "title": "Géométrie plane",
+        "description": "Utiliser le vocabulaire géométrique. Construire des figures géométriques simples.",
+        "keywords": ["géométrie", "figure", "construction", "règle", "compas"]
+      },
+      {
+        "title": "Aires et périmètres",
+        "description": "Calculer le périmètre d'un polygone. Déterminer l'aire d'une figure par pavage ou par formule.",
+        "keywords": ["aire", "périmètre", "surface", "formule", "pavage"]
+      }
+    ],
+    "5ème": [
+      {
+        "title": "Les nombres relatifs",
+        "description": "Découvrir les nombres négatifs. Les placer sur une droite graduée. Effectuer des calculs simples.",
+        "keywords": ["relatif", "négatif", "positif", "droite graduée"]
+      },
+      {
+        "title": "Les fractions",
+        "description": "Approfondir le travail sur les fractions. Addition et soustraction de fractions de même dénominateur.",
+        "keywords": ["fraction", "addition", "soustraction", "dénominateur"]
+      },
+      {
+        "title": "Le calcul littéral",
+        "description": "Introduction aux expressions littérales. Réduire une expression simple. Tester l'égalité de deux expressions.",
+        "keywords": ["littéral", "expression", "variable", "lettre"]
+      },
+      {
+        "title": "Les triangles",
+        "description": "Propriétés des triangles. Inégalité triangulaire. Construction de triangles.",
+        "keywords": ["triangle", "inégalité triangulaire", "construction"]
+      }
+    ],
+    "4ème": [
+      {
+        "title": "Les nombres relatifs",
+        "description": "Maîtriser les opérations sur les nombres relatifs : addition, soustraction, multiplication, division.",
+        "keywords": ["relatif", "opération", "multiplication", "division"]
+      },
+      {
+        "title": "Le calcul littéral",
+        "description": "Développer, factoriser et réduire des expressions littérales simples.",
+        "keywords": ["développer", "factoriser", "expression littérale"]
+      },
+      {
+        "title": "Les équations",
+        "description": "Résoudre des équations du premier degré à une inconnue.",
+        "keywords": ["équation", "inconnue", "résoudre", "premier degré"]
+      },
+      {
+        "title": "Le théorème de Pythagore",
+        "description": "Connaître et utiliser le théorème de Pythagore et sa réciproque.",
+        "keywords": ["Pythagore", "triangle rectangle", "hypoténuse", "théorème"]
+      },
+      {
+        "title": "Les probabilités",
+        "description": "Approche intuitive de la probabilité. Calculer des probabilités dans des situations simples.",
+        "keywords": ["probabilité", "hasard", "événement", "fréquence"]
+      }
+    ],
+    "3ème": [
+      {
+        "title": "Calcul numérique et littéral",
+        "description": "Maîtriser le calcul sur les nombres rationnels et les puissances. Factoriser et développer.",
+        "keywords": ["rationnel", "puissance", "factoriser", "développer"]
+      },
+      {
+        "title": "Équations et inéquations",
+        "description": "Résoudre des équations et inéquations du premier degré. Systèmes d'équations.",
+        "keywords": ["équation", "inéquation", "système", "premier degré"]
+      },
+      {
+        "title": "Fonctions linéaires",
+        "description": "Notion de fonction. Fonctions linéaires et affines. Représentation graphique.",
+        "keywords": ["fonction", "linéaire", "affine", "graphique", "représentation"]
+      },
+      {
+        "title": "Théorème de Thalès",
+        "description": "Connaître et utiliser le théorème de Thalès et sa réciproque.",
+        "keywords": ["Thalès", "proportionnalité", "triangle", "théorème"]
+      },
+      {
+        "title": "Trigonométrie",
+        "description": "Relations trigonométriques dans le triangle rectangle : cosinus, sinus, tangente.",
+        "keywords": ["trigonométrie", "cosinus", "sinus", "tangente", "triangle rectangle"]
+      }
+    ],
+    "2nde": [
+      {
+        "title": "Ensembles de nombres",
+        "description": "Ensembles ℕ, ℤ, ℚ, ℝ. Intervalles. Valeur absolue.",
+        "keywords": ["ensemble", "naturel", "entier", "rationnel", "réel", "intervalle", "valeur absolue"]
+      },
+      {
+        "title": "Fonctions",
+        "description": "Notion de fonction. Représentation graphique. Image et antécédent.",
+        "keywords": ["fonction", "graphique", "image", "antécédent", "représentation"]
+      },
+      {
+        "title": "Géométrie repérée",
+        "description": "Repérage dans le plan. Distance entre deux points. Équations de droites.",
+        "keywords": ["repère", "coordonnée", "distance", "droite", "équation"]
+      },
+      {
+        "title": "Statistiques et probabilités",
+        "description": "Statistiques descriptives. Probabilité sur un ensemble fini.",
+        "keywords": ["statistique", "moyenne", "médiane", "écart-type", "probabilité"]
+      }
+    ],
+    "1ère": [
+      {
+        "title": "Second degré",
+        "description": "Polynômes du second degré. Forme canonique. Discriminant. Résolution d'équations.",
+        "keywords": ["second degré", "polynôme", "discriminant", "forme canonique", "équation"]
+      },
+      {
+        "title": "Dérivation",
+        "description": "Nombre dérivé. Fonction dérivée. Applications à l'étude de fonctions.",
+        "keywords": ["dérivée", "nombre dérivé", "tangente", "variation", "fonction"]
+      },
+      {
+        "title": "Suites numériques",
+        "description": "Suites arithmétiques et géométriques. Comportement à l'infini.",
+        "keywords": ["suite", "arithmétique", "géométrique", "terme", "limite"]
+      },
+      {
+        "title": "Probabilités conditionnelles",
+        "description": "Probabilité conditionnelle. Indépendance. Arbre pondéré.",
+        "keywords": ["probabilité conditionnelle", "indépendance", "arbre", "pondéré"]
+      }
+    ],
+    "Terminale": [
+      {
+        "title": "Limites et continuité",
+        "description": "Limites de fonctions. Asymptotes. Continuité sur un intervalle.",
+        "keywords": ["limite", "asymptote", "continuité", "infini", "fonction"]
+      },
+      {
+        "title": "Dérivation avancée",
+        "description": "Dérivation des fonctions composées. Applications : optimisation, tangentes.",
+        "keywords": ["dérivée", "composée", "optimisation", "tangente", "maximum", "minimum"]
+      },
+      {
+        "title": "Primitives et intégrales",
+        "description": "Primitives. Intégrale définie. Calcul d'aires.",
+        "keywords": ["primitive", "intégrale", "aire", "calcul intégral"]
+      },
+      {
+        "title": "Logarithmes et exponentielles",
+        "description": "Fonction exponentielle et logarithme népérien. Équations et inéquations.",
+        "keywords": ["exponentielle", "logarithme", "népérien", "ln", "exp"]
+      },
+      {
+        "title": "Géométrie dans l'espace",
+        "description": "Géométrie vectorielle dans l'espace. Produit scalaire. Équations de plans.",
+        "keywords": ["espace", "vecteur", "produit scalaire", "plan", "équation"]
+      }
+    ]
+  }
+}

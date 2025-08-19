@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "181647207807",
+    "project_id": "ilium-4d0ab",
+    "storage_bucket": "ilium-4d0ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:181647207807:android:1954fd94851045a12cbe4a",
+        "android_client_info": {
+          "package_name": "com.ilium.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd8FeXAAHTfvFTVkHsFuhVX1zkv-5gyPw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

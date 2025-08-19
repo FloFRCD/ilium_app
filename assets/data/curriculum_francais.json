@@ -1,0 +1,151 @@
+{
+  "matiere": "Français",
+  "niveaux": {
+    "CP": [
+      {
+        "title": "Apprentissage de la lecture",
+        "description": "Déchiffrer des mots. Comprendre des phrases simples. Méthode syllabique et globale.",
+        "keywords": ["lecture", "déchiffrer", "syllabe", "mot", "phrase"]
+      },
+      {
+        "title": "Les sons et les lettres",
+        "description": "Correspondance entre lettres et sons. Alphabet. Voyelles et consonnes.",
+        "keywords": ["son", "lettre", "alphabet", "voyelle", "consonne", "phonème"]
+      },
+      {
+        "title": "Écriture des lettres",
+        "description": "Formation des lettres. Écriture cursive. Majuscules et minuscules.",
+        "keywords": ["écriture", "cursive", "majuscule", "minuscule", "formation"]
+      }
+    ],
+    "6ème": [
+      {
+        "title": "Récits d'aventures",
+        "description": "Lire des récits d'aventures. Comprendre les personnages et l'intrigue. Écrire un court récit.",
+        "keywords": ["aventure", "récit", "personnage", "intrigue", "narration"]
+      },
+      {
+        "title": "Contes et fables",
+        "description": "Découvrir les contes traditionnels et les fables. Comprendre la morale.",
+        "keywords": ["conte", "fable", "morale", "tradition", "enseignement"]
+      },
+      {
+        "title": "Poésie",
+        "description": "Lire et dire des poèmes. Comprendre les rimes et le rythme.",
+        "keywords": ["poésie", "poème", "rime", "rythme", "vers", "strophe"]
+      },
+      {
+        "title": "Grammaire de phrase",
+        "description": "Nature et fonction des mots. Analyse de phrase simple.",
+        "keywords": ["grammaire", "nature", "fonction", "mot", "phrase", "analyse"]
+      }
+    ],
+    "5ème": [
+      {
+        "title": "Romans de chevalerie",
+        "description": "Découvrir la littérature médiévale. Comprendre l'idéal chevaleresque.",
+        "keywords": ["chevalerie", "médiéval", "roman", "idéal", "héros"]
+      },
+      {
+        "title": "Comédies",
+        "description": "Lire des comédies. Comprendre les ressorts du comique.",
+        "keywords": ["comédie", "comique", "théâtre", "personnage", "situation"]
+      },
+      {
+        "title": "Grammaire du verbe",
+        "description": "Conjugaison. Temps et modes. Accord du participe passé.",
+        "keywords": ["verbe", "conjugaison", "temps", "mode", "accord", "participe"]
+      }
+    ],
+    "4ème": [
+      {
+        "title": "Nouvelles réalistes",
+        "description": "Lire des nouvelles du XIXe siècle. Comprendre le réalisme.",
+        "keywords": ["nouvelle", "réalisme", "XIXe siècle", "société"]
+      },
+      {
+        "title": "Presse et médias",
+        "description": "Analyser l'information. Comprendre les médias modernes.",
+        "keywords": ["presse", "média", "information", "analyse", "actualité"]
+      },
+      {
+        "title": "Argumentation",
+        "description": "Construire un raisonnement. Défendre une thèse avec des arguments.",
+        "keywords": ["argumentation", "thèse", "argument", "raisonnement", "convaincre"]
+      }
+    ],
+    "3ème": [
+      {
+        "title": "Autobiographies",
+        "description": "Lire des récits autobiographiques. Comprendre l'écriture de soi.",
+        "keywords": ["autobiographie", "récit de soi", "mémoires", "témoignage"]
+      },
+      {
+        "title": "Poésie engagée",
+        "description": "Découvrir la poésie engagée. Comprendre l'art et la société.",
+        "keywords": ["poésie engagée", "société", "politique", "résistance"]
+      },
+      {
+        "title": "Dissertation",
+        "description": "Rédiger une dissertation. Organiser ses idées. Plan et argumentation.",
+        "keywords": ["dissertation", "plan", "argumentation", "développement", "conclusion"]
+      }
+    ],
+    "2nde": [
+      {
+        "title": "Roman et récit",
+        "description": "Étudier l'évolution du roman. Personnage et société.",
+        "keywords": ["roman", "récit", "personnage", "société", "narrateur"]
+      },
+      {
+        "title": "Théâtre classique",
+        "description": "Découvrir le théâtre du XVIIe siècle. Règles classiques.",
+        "keywords": ["théâtre", "classique", "XVIIe", "règle", "tragédie", "comédie"]
+      },
+      {
+        "title": "Commentaire littéraire",
+        "description": "Analyser un texte littéraire. Méthode du commentaire composé.",
+        "keywords": ["commentaire", "analyse", "littéraire", "méthode", "composition"]
+      }
+    ],
+    "1ère": [
+      {
+        "title": "Roman et personnage",
+        "description": "Évolution du personnage de roman du XVIIe au XXe siècle.",
+        "keywords": ["roman", "personnage", "évolution", "psychologie"]
+      },
+      {
+        "title": "Théâtre du XVIIe au XXIe",
+        "description": "Texte théâtral et représentation. Du classique au contemporain.",
+        "keywords": ["théâtre", "représentation", "mise en scène", "contemporain"]
+      },
+      {
+        "title": "Dissertation littéraire",
+        "description": "Maîtriser la dissertation littéraire. Problématique et plan.",
+        "keywords": ["dissertation", "problématique", "plan", "littérature"]
+      },
+      {
+        "title": "Oral de français",
+        "description": "Préparer l'épreuve orale. Entretien et lecture analytique.",
+        "keywords": ["oral", "entretien", "lecture analytique", "examen"]
+      }
+    ],
+    "Terminale": [
+      {
+        "title": "Œuvres au programme",
+        "description": "Étudier les œuvres intégrales au programme du baccalauréat.",
+        "keywords": ["œuvre", "programme", "baccalauréat", "intégrale"]
+      },
+      {
+        "title": "Parcours littéraires",
+        "description": "Suivre des parcours thématiques à travers les siècles.",
+        "keywords": ["parcours", "thématique", "littéraire", "histoire"]
+      },
+      {
+        "title": "Grand oral",
+        "description": "Préparer le grand oral. Présentation d'un projet personnel.",
+        "keywords": ["grand oral", "projet", "présentation", "personnel"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "matiere": "Histoire-Géographie",
+  "niveaux": {
+    "6ème": [
+      {
+        "title": "Orient ancien et Égypte",
+        "description": "Les premières civilisations : Mésopotamie et Égypte ancienne. Écriture et pouvoir.",
+        "keywords": ["Orient ancien", "Égypte", "Mésopotamie", "civilisation", "écriture", "pharaon"]
+      },
+      {
+        "title": "Grèce antique",
+        "description": "La cité grecque. Athènes et la démocratie. Les jeux olympiques.",
+        "keywords": ["Grèce", "cité", "Athènes", "démocratie", "jeux olympiques", "antiquité"]
+      },
+      {
+        "title": "Rome antique",
+        "description": "De la République à l'Empire romain. Conquêtes et romanisation.",
+        "keywords": ["Rome", "république", "empire", "conquête", "romanisation"]
+      },
+      {
+        "title": "Habiter la planète",
+        "description": "La répartition de la population mondiale. Foyers de peuplement et déserts humains.",
+        "keywords": ["population", "peuplement", "planète", "répartition", "désert humain"]
+      },
+      {
+        "title": "Habiter les métropoles",
+        "description": "Les grandes villes du monde. Croissance urbaine et défis.",
+        "keywords": ["métropole", "ville", "urbain", "croissance", "défi"]
+      }
+    ],
+    "5ème": [
+      {
+        "title": "Byzance et Islam",
+        "description": "L'Empire byzantin. Naissance et expansion de l'Islam.",
+        "keywords": ["Byzance", "Islam", "empire", "expansion", "religion"]
+      },
+      {
+        "title": "Société féodale",
+        "description": "La féodalité en Europe. Seigneurs et paysans au Moyen Âge.",
+        "keywords": ["féodalité", "seigneur", "paysan", "Moyen Âge", "société"]
+      },
+      {
+        "title": "Changement global",
+        "description": "Le réchauffement climatique. Causes et conséquences.",
+        "keywords": ["climat", "réchauffement", "changement", "environnement"]
+      },
+      {
+        "title": "Prévenir les risques",
+        "description": "Risques naturels et technologiques. Prévention et gestion.",
+        "keywords": ["risque", "naturel", "technologique", "prévention", "catastrophe"]
+      }
+    ],
+    "4ème": [
+      {
+        "title": "XVIIIe siècle",
+        "description": "L'Europe des Lumières. Transformations économiques et sociales.",
+        "keywords": ["XVIIIe", "Lumières", "Europe", "transformation", "philosophe"]
+      },
+      {
+        "title": "Révolution française",
+        "description": "1789-1799 : de la monarchie absolue à la République.",
+        "keywords": ["révolution", "1789", "République", "monarchie", "Terreur"]
+      },
+      {
+        "title": "Mobilités humaines",
+        "description": "Migrations internationales. Causes et conséquences.",
+        "keywords": ["migration", "mobilité", "international", "déplacement"]
+      },
+      {
+        "title": "Mers et océans",
+        "description": "Un monde maritime. Ressources et enjeux géopolitiques.",
+        "keywords": ["mer", "océan", "maritime", "ressource", "géopolitique"]
+      }
+    ],
+    "3ème": [
+      {
+        "title": "Guerres mondiales",
+        "description": "1914-1918 et 1939-1945. L'Europe dans les conflits mondiaux.",
+        "keywords": ["guerre mondiale", "1914-1918", "1939-1945", "conflit", "Europe"]
+      },
+      {
+        "title": "Guerre froide",
+        "description": "1947-1991 : affrontement Est-Ouest. Décolonisation.",
+        "keywords": ["guerre froide", "Est-Ouest", "décolonisation", "blocs"]
+      },
+      {
+        "title": "Aires urbaines",
+        "description": "L'organisation du territoire français. Villes et espaces ruraux.",
+        "keywords": ["aire urbaine", "territoire", "français", "ville", "rural"]
+      },
+      {
+        "title": "France et Union européenne",
+        "description": "La France dans l'Union européenne. Construction européenne.",
+        "keywords": ["France", "Union européenne", "construction", "Europe"]
+      }
+    ],
+    "2nde": [
+      {
+        "title": "Méditerranée antique",
+        "description": "Contacts et échanges en Méditerranée. Grecs, Romains, monde antique.",
+        "keywords": ["Méditerranée", "antique", "échange", "Grecs", "Romains"]
+      },
+      {
+        "title": "XVe-XVIe siècles",
+        "description": "Renaissance et réformes religieuses. Grandes découvertes.",
+        "keywords": ["Renaissance", "réforme", "découverte", "XVe", "XVIe"]
+      },
+      {
+        "title": "Sociétés et environnements",
+        "description": "Sociétés face aux risques. Transition environnementale.",
+        "keywords": ["société", "environnement", "risque", "transition"]
+      },
+      {
+        "title": "Territoires, populations",
+        "description": "Développement et inégalités. Géographie du développement.",
+        "keywords": ["territoire", "population", "développement", "inégalité"]
+      }
+    ],
+    "1ère": [
+      {
+        "title": "Révolution française",
+        "description": "Révolution, Consulat et Empire (1789-1815). Nouvelle Europe.",
+        "keywords": ["révolution", "Consulat", "Empire", "Napoléon", "Europe"]
+      },
+      {
+        "title": "XIXe siècle",
+        "description": "Transformations politiques et sociales en France (1815-1914).",
+        "keywords": ["XIXe", "transformation", "France", "politique", "social"]
+      },
+      {
+        "title": "Métropolisation",
+        "description": "La métropolisation mondiale. Villes globales.",
+        "keywords": ["métropolisation", "mondial", "ville globale", "urbain"]
+      },
+      {
+        "title": "France : dynamiques",
+        "description": "Dynamiques territoriales de la France contemporaine.",
+        "keywords": ["France", "dynamique", "territorial", "contemporain"]
+      }
+    ],
+    "Terminale": [
+      {
+        "title": "Relations internationales",
+        "description": "Fragilité des démocraties, totalitarismes (1929-1945).",
+        "keywords": ["démocratie", "totalitarisme", "1929", "1945", "international"]
+      },
+      {
+        "title": "Seconde Guerre mondiale",
+        "description": "La Seconde Guerre mondiale. Génocides et crimes de masse.",
+        "keywords": ["Seconde Guerre mondiale", "génocide", "crime de masse", "Shoah"]
+      },
+      {
+        "title": "Monde depuis 1991",
+        "description": "Le monde depuis la fin de la guerre froide. Nouvel ordre mondial.",
+        "keywords": ["1991", "guerre froide", "ordre mondial", "mondialisation"]
+      },
+      {
+        "title": "Patrimoine et environnement",
+        "description": "Patrimoines et environnement. Enjeux contemporains.",
+        "keywords": ["patrimoine", "environnement", "enjeu", "contemporain"]
+      }
+    ]
+  }
+}
