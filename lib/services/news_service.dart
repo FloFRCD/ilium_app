@@ -35,7 +35,10 @@ class NewsArticle {
 /// Service pour récupérer les actualités éducatives via GNews API
 class NewsService {
   static const String _baseUrl = 'https://gnews.io/api/v4';
-  static const String _apiKey = '426bdec95627db3f12c0592df7265c0b';
+  static const String _apiKey = String.fromEnvironment(
+    'GNEWS_API_KEY',
+    defaultValue: '', // Clé API à définir via variable d'environnement
+  );
   
   /// Récupère les actualités éducatives en français
   Future<List<NewsArticle>> getEducationNews({int maxArticles = 5}) async {
