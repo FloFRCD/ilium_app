@@ -9,7 +9,7 @@ import '../utils/logger.dart';
 
 class OpenAIService {
   static const String _baseUrl = ApiConfig.openaiBaseUrl;
-  static const String _apiKey = ApiConfig.openaiApiKey;
+  static String get _apiKey => ApiConfig.openaiApiKey;
 
   /// Parse les métadonnées du contenu généré par l'IA
   Map<String, dynamic> _parseMetadata(String content) {
@@ -308,6 +308,10 @@ class OpenAIService {
   }
 
   Future<String?> _makeOpenAIRequest(String prompt, {String? model}) async {
+    // Debug pour vérifier la configuration
+    Logger.info('Debug OpenAI - Clé configurée: ${ApiConfig.isOpenAIConfigured}');
+    Logger.info('Debug OpenAI - Clé: ${_apiKey.isNotEmpty ? '${_apiKey.substring(0, 10)}...' : 'VIDE'}');
+    
     // Vérifier si la clé API est configurée
     if (!ApiConfig.isOpenAIConfigured) {
       Logger.info('API OpenAI non configurée - utilisation de réponse mock');

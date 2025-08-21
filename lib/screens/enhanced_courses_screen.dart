@@ -80,6 +80,7 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _niveauController = TextEditingController();
   final TextEditingController _matiereController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   
   List<CatalogItem> _allItems = [];
   List<CatalogItem> _displayedItems = [];
@@ -88,6 +89,7 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
   
   bool _isLoading = true;
   bool _isSearching = false;
+  bool _isHeaderCollapsed = false;
   DateTime? _lastLoadTime;
 
   @override
@@ -97,6 +99,16 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
     _searchController.addListener(_onSearchChanged);
     _niveauController.addListener(_onSearchChanged);
     _matiereController.addListener(_onSearchChanged);
+    
+    // Écouter le scroll pour gérer l'état du header
+    _scrollController.addListener(() {
+      final isCollapsed = _scrollController.hasClients && _scrollController.offset > 150;
+      if (isCollapsed != _isHeaderCollapsed) {
+        setState(() {
+          _isHeaderCollapsed = isCollapsed;
+        });
+      }
+    });
   }
 
   @override
@@ -104,6 +116,7 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
     _searchController.dispose();
     _niveauController.dispose();
     _matiereController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -121,11 +134,17 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
     });
 
     try {
-      // Charger cours et QCM en parallèle
+      // Charger cours et QCM en parallèle avec timeout
       final results = await Future.wait([
         _catalogService.getCoursesByUserPreferences(widget.user, limit: 50),
         _loadAvailableQCMs(),
-      ]);
+      ]).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          Logger.warning('⏰ Timeout lors du chargement du catalogue - utilisation des données fallback');
+          return [<CourseModel>[], <QCMModel>[]];
+        },
+      );
 
       List<CourseModel> courses = results[0] as List<CourseModel>;
       List<QCMModel> qcms = results[1] as List<QCMModel>;
@@ -201,6 +220,31 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
   /// Génère une moyenne fictive pour un QCM (entre 70 et 100)
   double _generateFakeAverageScore() {
     return 70.0 + (dart_math.Random().nextDouble() * 30.0);
+  }
+
+  /// Effectue une recherche manuelle via le bouton
+  Future<void> _performSearch() async {
+    // Recharger les données du catalogue
+    await _loadCatalogData();
+  }
+
+  /// Calcule la hauteur du header dynamiquement selon le contenu
+  double _calculateHeaderHeight() {
+    if (_isHeaderCollapsed) return 120;
+    
+    // Hauteur de base identique à la page programme
+    double baseHeight = 280;
+    
+    // Même logique que la page programme
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    
+    // Adaptation simple pour les petits écrans
+    if (isSmallScreen) {
+      baseHeight += 20;
+    }
+    
+    return baseHeight;
   }
 
   /// Fonction de recherche avec filtres
@@ -292,15 +336,183 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyLight,
-      body: Column(
-        children: [
-          // Header avec titre et section de recherche combinés
-          _buildHeaderWithSearch(),
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // Header collapsible avec recherche
+          SliverAppBar(
+            expandedHeight: _calculateHeaderHeight(),
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: AnimatedOpacity(
+              opacity: _isHeaderCollapsed ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(
+                      Icons.library_books,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Cours',
+                          style: AppTextStyles.h2.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          'Explorez notre catalogue de contenu',
+                          style: AppTextStyles.body.copyWith(
+                            color: AppColors.white.withValues(alpha: 0.9),
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildModernHeader(),
+            ),
+          ),
+          
+          // Espacement équivalent à la section spécialités de la page programme
+          SliverToBoxAdapter(
+            child: SizedBox(height: AppSpacing.sm),
+          ),
           
           // Contenu principal
-          Expanded(
-            child: _buildContent(),
+          if (_isLoading)
+            SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            )
+          else if (_displayedItems.isEmpty && _isSearching)
+            SliverFillRemaining(
+              child: _buildEmptySearchState(),
+            )
+          else if (_displayedItems.isEmpty)
+            SliverFillRemaining(
+              child: _buildEmptyState(),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = _displayedItems[index];
+                  return _buildCatalogItemCard(item);
+                },
+                childCount: _displayedItems.length,
+              ),
+            )
+        ],
+      ),
+    );
+  }
+
+  /// Header moderne avec style cohérent à la page programme
+  Widget _buildModernHeader() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+        MediaQuery.of(context).padding.top + AppSpacing.lg,
+        isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(AppRadius.xl),
+          bottomRight: Radius.circular(AppRadius.xl),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
+            spreadRadius: 0,
           ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Titre principal
+          Row(
+            children: [
+              Container(
+                width: isSmallScreen ? 36 : 44,
+                height: isSmallScreen ? 36 : 44,
+                decoration: BoxDecoration(
+                  color: AppColors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  Icons.library_books,
+                  color: AppColors.white,
+                  size: isSmallScreen ? 20 : 24,
+                ),
+              ),
+              SizedBox(width: isSmallScreen ? AppSpacing.sm : AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cours',
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: isSmallScreen ? 20 : null,
+                      ),
+                    ),
+                    Text(
+                      'Tous vos contenus éducatifs et QCM',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.9),
+                        fontSize: isSmallScreen ? 14 : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isSearching)
+                IconButton(
+                  icon: const Icon(Icons.clear, color: AppColors.white),
+                  onPressed: _clearAllFilters,
+                  tooltip: 'Effacer les filtres',
+                ),
+            ],
+          ),
+          
+          const SizedBox(height: AppSpacing.lg),
+          
+          // Section de recherche moderne
+          _buildModernSearchSection(),
         ],
       ),
     );
@@ -368,92 +580,122 @@ class _EnhancedCoursesScreenState extends State<EnhancedCoursesScreen> {
             ),
             
             // Section de recherche intégrée
-            _buildSearchFields(),
+            _buildModernSearchSection(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchFields() {
+  Widget _buildModernSearchSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Barre de recherche principale
-          TextField(
-            controller: _searchController,
-            style: AppTextStyles.body.copyWith(color: AppColors.white),
-            decoration: InputDecoration(
-              hintText: 'Rechercher un cours ou un QCM...',
-              hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
-              prefixIcon: const Icon(Icons.search, color: AppColors.white),
-              filled: true,
-              fillColor: AppColors.white.withValues(alpha: 0.2),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide.none,
+      constraints: const BoxConstraints(maxHeight: 200), // Limiter la hauteur
+      child: SingleChildScrollView( // Rendre scrollable si nécessaire
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Prendre le minimum d'espace
+          children: [
+            // Barre de recherche principale
+            TextField(
+              controller: _searchController,
+              style: AppTextStyles.body.copyWith(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: 'Rechercher un cours ou QCM...',
+                hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
+                prefixIcon: const Icon(Icons.search, color: AppColors.white),
+                filled: true,
+                fillColor: AppColors.white.withValues(alpha: 0.2),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Réduire le padding
+              ),
+              onChanged: (_) => _onSearchChanged(),
+            ),
+            
+            const SizedBox(height: AppSpacing.sm), // Réduire l'espacement
+            
+            // Champ matière
+            TextField(
+              controller: _matiereController,
+              style: AppTextStyles.body.copyWith(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: 'Matière (Ex: Mathématiques, Physique...)',
+                hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
+                prefixIcon: const Icon(Icons.subject, color: AppColors.white),
+                filled: true,
+                fillColor: AppColors.white.withValues(alpha: 0.2),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Réduire le padding
+              ),
+              onChanged: (_) => _onSearchChanged(),
+            ),
+            
+            const SizedBox(height: AppSpacing.sm), // Réduire l'espacement
+            
+            // Bouton de recherche sans fond
+            SizedBox(
+              width: double.infinity,
+              height: 44, // Réduire la hauteur
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isLoading ? null : _performSearch,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_isLoading) ...[
+                          SizedBox(
+                            width: 18, // Réduire la taille
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Flexible( // Rendre flexible
+                            child: Text(
+                              'Recherche...',
+                              style: AppTextStyles.button.copyWith(
+                                color: AppColors.white,
+                                fontSize: 14, // Réduire la taille
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ] else ...[
+                          Icon(
+                            Icons.search,
+                            color: AppColors.white,
+                            size: 18, // Réduire la taille
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Flexible( // Rendre flexible
+                            child: Text(
+                              'Rechercher dans le catalogue',
+                              style: AppTextStyles.button.copyWith(
+                                color: AppColors.white,
+                                fontSize: 14, // Réduire la taille
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Filtres rapides
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _matiereController,
-                  style: AppTextStyles.body.copyWith(color: AppColors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Matière',
-                    hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
-                    filled: true,
-                    fillColor: AppColors.white.withValues(alpha: 0.2),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _niveauController,
-                  style: AppTextStyles.body.copyWith(color: AppColors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Niveau',
-                    hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
-                    filled: true,
-                    fillColor: AppColors.white.withValues(alpha: 0.2),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _showFiltersDialog,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Icon(
-                    Icons.tune,
-                    color: AppColors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

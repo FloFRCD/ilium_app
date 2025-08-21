@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'badge_model.dart';
 import 'progression_model.dart';
 import 'freemium_limitations_model.dart';
+import '../utils/logger.dart';
 
 enum UserStatus {
   active,
@@ -120,22 +121,22 @@ class UserModel {
         'limitations': limitations.toMap(),
       };
     } catch (e) {
-      print('🚨 ERREUR dans toFirestore(): $e');
+      Logger.error('🚨 ERREUR dans toFirestore(): $e');
       
       // Debug chaque champ individuellement
-      print('  uid: $uid');
-      print('  pseudo: $pseudo');
-      print('  email: $email');
-      print('  niveau: $niveau');
-      print('  options: $options');
-      print('  birthDate: $birthDate');
-      print('  status: $status');
-      print('  subscriptionType: $subscriptionType');
-      print('  badges.length: ${badges.length}');
-      print('  progression: ${progression.toString()}');
-      print('  createdAt: $createdAt');
-      print('  updatedAt: $updatedAt');
-      print('  preferences: $preferences');
+      Logger.debug('  uid: $uid');
+      Logger.debug('  pseudo: $pseudo');
+      Logger.debug('  email: $email');
+      Logger.debug('  niveau: $niveau');
+      Logger.debug('  options: $options');
+      Logger.debug('  birthDate: $birthDate');
+      Logger.debug('  status: $status');
+      Logger.debug('  subscriptionType: $subscriptionType');
+      Logger.debug('  badges.length: ${badges.length}');
+      Logger.debug('  progression: ${progression.toString()}');
+      Logger.debug('  createdAt: $createdAt');
+      Logger.debug('  updatedAt: $updatedAt');
+      Logger.debug('  preferences: $preferences');
       
       rethrow;
     }

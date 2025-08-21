@@ -51,6 +51,23 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
     
+    // Règles pour les programmes générés par IA - lecture pour tous les utilisateurs authentifiés, écriture pour l'application
+    match /programme/{document} {
+      allow read: if request.auth != null;
+      allow write, create: if request.auth != null;
+    }
+    
+    match /programme_matiere/{document} {
+      allow read: if request.auth != null;
+      allow write, create: if request.auth != null;
+    }
+    
+    // Règles pour les cours générés - lecture pour tous les utilisateurs authentifiés
+    match /generated_courses/{document} {
+      allow read: if request.auth != null;
+      allow write, create: if request.auth != null;
+    }
+    
     // Règles par défaut - refuser tout accès non spécifié
     match /{document=**} {
       allow read, write: if false;

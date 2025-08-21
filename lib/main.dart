@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
-// Firebase
+// Packages
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Local files
 import 'firebase_options.dart';
@@ -17,22 +18,33 @@ import 'theme/app_theme.dart';
 import 'widgets/auth_wrapper.dart';
 import 'widgets/custom_bottom_navigation.dart';
 import 'widgets/premium_promotion_banner.dart';
+import 'utils/logger.dart';
 
 /// Point d'entrée principal de l'application Ilium.
 /// Initialise Firebase et lance l'application.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  Logger.info('🚀 Démarrage de l\'application Ilium');
+  
   try {
+    // Charger les variables d'environnement depuis .env
+    Logger.info('📁 Chargement des variables d\'environnement...');
+    await dotenv.load(fileName: ".env");
+    Logger.info('✅ Variables d\'environnement chargées');
+    
+    Logger.info('🔥 Initialisation de Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    debugPrint('=== FIREBASE INITIALIZED SUCCESSFULLY ===');
+    Logger.info('✅ Firebase initialisé avec succès');
+    
   } catch (e) {
-    debugPrint('Firebase init error: $e');
+    Logger.error('❌ Erreur d\'initialisation Firebase: $e');
     // Continue sans Firebase - l'app fonctionnera en mode hors ligne
   }
   
+  Logger.info('🎯 Lancement de l\'interface utilisateur');
   runApp(const IliumApp());
 }
 
@@ -138,31 +150,190 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  // Nouveau layout web avec sidebar
+  // Layout web professionnel avec sidebar
   Widget _buildWebLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.red, // TEST pour vérifier que ça marche
-      appBar: AppBar(
-        title: const Text('🎉 LAYOUT WEB FONCTIONNE !'),
-        backgroundColor: Colors.green,
-      ),
       body: Row(
         children: [
-          // Sidebar navigation
+          // Sidebar navigation moderne
           Container(
             width: 280,
-            color: Colors.blue,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              border: Border(
+                right: BorderSide(
+                  color: AppColors.grey200,
+                  width: 1,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.grey900.withValues(alpha: 0.05),
+                  offset: const Offset(2, 0),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('SIDEBAR WEB', style: TextStyle(color: Colors.white, fontSize: 20)),
+                // Header du sidebar avec logo
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: AppColors.grey200,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Logo
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.school,
+                          color: AppColors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      
+                      // Nom de l'app
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ilium',
+                            style: AppTextStyles.h3.copyWith(
+                              color: AppColors.grey900,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Learning Platform',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.grey600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                _buildNavItem('🏠', 'Accueil', 0),
-                _buildNavItem('📚', 'Cours', 1),
-                _buildNavItem('📋', 'Programme', 2),
-                _buildNavItem('💾', 'Sauvegardés', 3),
-                _buildNavItem('👤', 'Profil', 4),
+                
+                // Menu de navigation
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildNavItem(
+                          icon: Icons.home_outlined,
+                          activeIcon: Icons.home,
+                          label: 'Accueil',
+                          index: 0,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildNavItem(
+                          icon: Icons.book_outlined,
+                          activeIcon: Icons.book,
+                          label: 'Catalogue de cours',
+                          index: 1,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildNavItem(
+                          icon: Icons.assignment_outlined,
+                          activeIcon: Icons.assignment,
+                          label: 'Programme officiel',
+                          index: 2,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildNavItem(
+                          icon: Icons.bookmark_outline,
+                          activeIcon: Icons.bookmark,
+                          label: 'Mes sauvegardes',
+                          index: 3,
+                        ),
+                        
+                        // Divider
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 24),
+                          height: 1,
+                          color: AppColors.grey200,
+                        ),
+                        
+                        _buildNavItem(
+                          icon: Icons.person_outline,
+                          activeIcon: Icons.person,
+                          label: 'Mon profil',
+                          index: 4,
+                        ),
+                        
+                        const Spacer(),
+                        
+                        // Section utilisateur en bas
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: AppColors.primary,
+                                child: Text(
+                                  _currentUser.pseudo.isNotEmpty 
+                                      ? _currentUser.pseudo[0].toUpperCase() 
+                                      : 'U',
+                                  style: AppTextStyles.bodyLarge.copyWith(
+                                    color: AppColors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _currentUser.pseudo.isNotEmpty 
+                                          ? _currentUser.pseudo 
+                                          : 'Utilisateur',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.grey900,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      _currentUser.niveau.isNotEmpty 
+                                          ? _currentUser.niveau 
+                                          : 'Niveau',
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.grey600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -179,14 +350,51 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildNavItem(String icon, String label, int index) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+  }) {
     final isActive = _currentIndex == index;
     
-    return ListTile(
-      leading: Text(icon, style: const TextStyle(fontSize: 24)),
-      title: Text(label, style: TextStyle(color: isActive ? Colors.yellow : Colors.white)),
-      onTap: () => setState(() => _currentIndex = index),
-      tileColor: isActive ? Colors.white.withOpacity(0.1) : null,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _currentIndex = index),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isActive 
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  color: isActive ? AppColors.primary : AppColors.grey600,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppTextStyles.body.copyWith(
+                      color: isActive ? AppColors.primary : AppColors.grey700,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

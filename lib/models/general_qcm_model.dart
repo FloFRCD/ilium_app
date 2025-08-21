@@ -129,7 +129,7 @@ class GeneralQCMModel {
   String get fullTitle {
     String title = '$titre - $niveau';
     if (options != null && options!.isNotEmpty) {
-      title += ' (${optionsDescription})';
+      title += ' ($optionsDescription)';
     }
     return title;
   }

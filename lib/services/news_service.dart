@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/logger.dart';
+import '../config/api_config.dart';
 
 /// Modèle pour un article de news
 class NewsArticle {
@@ -35,21 +36,24 @@ class NewsArticle {
 /// Service pour récupérer les actualités éducatives via GNews API
 class NewsService {
   static const String _baseUrl = 'https://gnews.io/api/v4';
-  static const String _apiKey = String.fromEnvironment(
-    'GNEWS_API_KEY',
-    defaultValue: '', // Clé API à définir via variable d'environnement
-  );
+  static String get _apiKey => ApiConfig.gnewsApiKey;
   
   /// Récupère les actualités éducatives en français
   Future<List<NewsArticle>> getEducationNews({int maxArticles = 5}) async {
     try {
       Logger.info('📰 Récupération des actualités éducatives via GNews API...');
       
-      // Requête avec des filtres très stricts pour l'éducation
-      final query = Uri.encodeComponent('("éducation nationale" OR "ministère éducation" OR "université" OR "formation professionnelle" OR "enseignement" OR "baccalauréat" OR "parcoursup" OR "étudiants" OR "professeurs" OR "réforme scolaire") -football -sport -people -faits');
+      // Vérifier la configuration de l'API
+      if (!ApiConfig.isGNewsConfigured) {
+        Logger.warning('API GNews non configurée - utilisation du fallback');
+        return _getFallbackNews();
+      }
+      
+      // Requête simplifiée avec syntaxe GNews correcte
+      final query = Uri.encodeComponent('éducation université parcoursup baccalauréat enseignement');
       final url = '$_baseUrl/search?q=$query&lang=fr&country=fr&max=${maxArticles * 3}&apikey=$_apiKey';
       
-      Logger.info('🌐 URL de requête: $url');
+      Logger.info('🌐 URL de requête: ${url.replaceFirst(_apiKey, '***')}');
       
       final response = await http.get(
         Uri.parse(url),

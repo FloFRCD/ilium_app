@@ -20,6 +20,7 @@ import '../services/course_completion_notifier.dart';
 import '../theme/app_theme.dart';
 
 // Local utils
+import '../utils/logger.dart';
 import '../utils/course_type_utils.dart';
 
 /// Écran de gestion des cours sauvegardés.
@@ -51,7 +52,7 @@ class _SavedCoursesScreenState extends State<SavedCoursesScreen>
   void initState() {
     super.initState();
     final initialIndex = widget.initialTabIndex ?? 0;
-    print('🔍 SavedCoursesScreen initialIndex: $initialIndex');
+    Logger.info('🔍 SavedCoursesScreen initialIndex: $initialIndex');
     _tabController = TabController(
       length: 3, 
       vsync: this,
@@ -103,12 +104,18 @@ class _SavedCoursesScreenState extends State<SavedCoursesScreen>
     });
 
     try {
-      // Charger en parallèle tous les types de cours
+      // Charger en parallèle tous les types de cours avec timeout
       final futures = await Future.wait([
         _favoritesService.getFavoriteGroups(userId: widget.user.uid),
         _statusService.getCoursesWithStatus(userId: widget.user.uid, filterByStatus: CourseStatus.inProgress, limit: 50),
         _statusService.getCoursesWithStatus(userId: widget.user.uid, filterByStatus: CourseStatus.completed, limit: 50),
-      ]);
+      ]).timeout(
+        const Duration(seconds: 8),
+        onTimeout: () {
+          Logger.warning('⏰ Timeout sauvegardes - utilisation des données fallback');
+          return [<CourseGroupModel>[], <Map<String, dynamic>>[], <Map<String, dynamic>>[]];
+        },
+      );
 
       if (mounted) {
         setState(() {
@@ -118,10 +125,7 @@ class _SavedCoursesScreenState extends State<SavedCoursesScreen>
           _isLoading = false;
         });
 
-        // Afficher message si tout est vide
-        if (_favoriteGroups.isEmpty && _inProgressCourses.isEmpty && _completedCourses.isEmpty) {
-          _showSuggestionMessage();
-        }
+        // Message supprimé - pas besoin de toaster
       }
     } catch (e) {
       debugPrint('Erreur chargement cours utilisateur: $e');
@@ -132,7 +136,7 @@ class _SavedCoursesScreenState extends State<SavedCoursesScreen>
           _completedCourses = [];
           _isLoading = false;
         });
-        _showSuggestionMessage();
+        // Message supprimé - pas besoin de toaster
       }
     }
   }
@@ -156,27 +160,6 @@ class _SavedCoursesScreenState extends State<SavedCoursesScreen>
     }
   }
 
-  /// Affiche un message suggérant d'explorer des cours
-  void _showSuggestionMessage() {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('💫 Explorez et ajoutez des cours aux sauvegardés pour les retrouver ici !'),
-            backgroundColor: Colors.purple,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Explorer',
-              textColor: Colors.white,
-              onPressed: () {
-                Navigator.of(context).pop(); // Retour à l'accueil
-              },
-            ),
-          ),
-        );
-      }
-    });
-  }
 
   @override
   void dispose() {
@@ -206,6 +189,7 @@ class _SavedCoursesScreenState extends State<SavedCoursesScreen>
 
   Widget _buildModernHeader() {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
         gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.only(

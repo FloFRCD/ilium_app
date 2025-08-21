@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/badge_model.dart';
+import '../utils/logger.dart';
 
 /// Service pour le système de badges basé sur les vrais accomplissements
 class BadgeSystemService {
@@ -341,9 +342,9 @@ class BadgeSystemService {
         'badges': userBadges.map((badge) => badge.toMap()).toList(),
       });
       
-      print('✅ Badges synchronisés pour utilisateur $userId: ${userBadges.length} badges');
+      Logger.info('✅ Badges synchronisés pour utilisateur $userId: ${userBadges.length} badges');
     } catch (e) {
-      print('❌ Erreur synchronisation badges: $e');
+      Logger.error('❌ Erreur synchronisation badges: $e');
     }
   }
   

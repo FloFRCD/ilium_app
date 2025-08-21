@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/course_model.dart';
 import '../models/qcm_model.dart';
@@ -37,30 +38,43 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
   List<String> _mockCourses = [];
   bool _isLoading = false;
   final List<String> _options = []; // Options modifiables (initialisées avec les spécialités utilisateur)
+  final ScrollController _scrollController = ScrollController();
+  bool _isHeaderCollapsed = false;
   
   @override
   void initState() {
     super.initState();
-    // Utiliser les paramètres initiaux s'ils sont fournis, sinon utiliser les valeurs par défaut
+    // Utiliser les paramètres initiaux s'ils sont fournis, sinon laisser vide
     _niveauController.text = widget.initialNiveau ?? widget.user.niveau;
-    _matiereController.text = widget.initialMatiere ?? 'Mathématiques';
+    _matiereController.text = widget.initialMatiere ?? ''; // Pas de présélection
     
     // Initialiser les options avec les spécialités de l'utilisateur
     _options.addAll(widget.user.options);
     
-    // Si des paramètres initiaux sont fournis, lancer la recherche automatiquement
-    if (widget.initialNiveau != null || widget.initialMatiere != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadProgramme();
+    // Configurer le listener pour détecter le scroll
+    _scrollController.addListener(_onScroll);
+    
+    // Charger automatiquement le programme complet au lancement
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCompleteProgramme();
+    });
+  }
+
+  void _onScroll() {
+    const double threshold = 100.0; // Seuil de scroll pour réduire le header
+    if (_scrollController.offset > threshold && !_isHeaderCollapsed) {
+      setState(() {
+        _isHeaderCollapsed = true;
       });
-    } else {
-      // Sinon charger le programme par défaut
-      _loadDefaultProgramme();
+    } else if (_scrollController.offset <= threshold && _isHeaderCollapsed) {
+      setState(() {
+        _isHeaderCollapsed = false;
+      });
     }
   }
 
-  /// Charge le programme par défaut pour Mathématiques du niveau de l'utilisateur
-  Future<void> _loadDefaultProgramme() async {
+  /// Charge le programme complet avec toutes les matières (niveau 1 - matières seulement)
+  Future<void> _loadCompleteProgramme() async {
     if (widget.user.niveau.isEmpty) {
       Logger.warning('Niveau utilisateur vide, impossible de charger le programme');
       return;
@@ -72,53 +86,157 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
     });
     
     try {
-      // Charger le programme de Mathématiques par défaut avec spécialités
-      // Utiliser la méthode simple en cas de problème avec l'optimisée
-      final programme = await _programmeService.getProgramme(
-        matiere: 'Mathématiques',
+      // Utiliser le nouveau système de génération niveau 1
+      final programme = await _programmeService.getProgrammeComplet(
         niveau: widget.user.niveau,
         options: _options,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          Logger.warning('⏰ Timeout programme complet');
+          return null;
+        },
       );
       
       if (programme != null && programme.chapitres.isNotEmpty) {
-        setState(() {
-          _mockCourses = programme.chapitres;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _mockCourses = programme.chapitres; // Les chapitres contiennent les matières
+            _isLoading = false;
+          });
+        }
       } else {
-        setState(() {
-          _mockCourses = ['Aucun programme disponible pour ${widget.user.niveau} en Mathématiques avec spécialités: ${_options.join(', ')}'];
-          _isLoading = false;
-        });
+        // Pas de programme trouvé - lancer la génération en arrière-plan
+        Logger.info('🚀 Aucun programme trouvé, génération en cours...');
+        if (mounted) {
+          // Rester en état de chargement, programmer des vérifications
+          _scheduleDataRefresh();
+        }
       }
     } catch (e) {
-      Logger.error('Erreur loadDefaultProgramme: $e');
-      setState(() {
-        _mockCourses = ['Erreur lors du chargement du programme: $e'];
-        _isLoading = false;
-      });
+      Logger.error('❌ Erreur loadCompleteProgramme: $e');
+      if (mounted) {
+        // En cas d'erreur, aussi programmer des vérifications plutôt qu'afficher du fallback
+        Logger.info('🔄 Erreur rencontrée, programmation des vérifications...');
+        _scheduleDataRefresh();
+      }
     }
   }
+  
+
+  /// Programme une vérification de nouvelles données avec polling progressif
+  void _scheduleDataRefresh() {
+    Logger.info('📅 Programmation des vérifications automatiques de données...');
+    
+    // Première vérification après 10 secondes
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted) {
+        Logger.info('🔍 [1/3] Première vérification de nouvelles données...');
+        _checkForUpdatedData();
+      }
+    });
+    
+    // Deuxième vérification après 20 secondes
+    Future.delayed(const Duration(seconds: 20), () {
+      if (mounted) {
+        Logger.info('🔍 [2/3] Deuxième vérification de nouvelles données...');
+        _checkForUpdatedData();
+      }
+    });
+    
+    // Troisième vérification après 35 secondes
+    Future.delayed(const Duration(seconds: 35), () {
+      if (mounted) {
+        Logger.info('🔍 [3/3] Vérification finale de nouvelles données...');
+        _checkForUpdatedData();
+      }
+    });
+  }
+
+  /// Vérifie s'il y a de nouvelles données générées et met à jour l'interface
+  Future<void> _checkForUpdatedData() async {
+    try {
+      Logger.info('🔄 Vérification de nouvelles données via Firestore direct...');
+      
+      // Générer l'ID du programme pour requête directe Firestore
+      final programmeId = _generateProgrammeId();
+      
+      // Requête directe Firestore pour éviter le cache local
+      final doc = await FirebaseFirestore.instance
+          .collection('programme')
+          .doc(programmeId)
+          .get();
+      
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final source = data['source'] as String?;
+        final chapitres = (data['chapitres'] as List<dynamic>?)?.cast<String>() ?? [];
+        
+        Logger.info('🔍 Programme trouvé - Source: $source, Chapitres: ${chapitres.length}');
+        
+        // Vérifier si on a des données OpenAI valides 
+        if (source == 'generated_openai' && chapitres.isNotEmpty && mounted) {
+          if (!_listsEqual(chapitres, _mockCourses)) {
+            Logger.info('✅ Nouvelles données OpenAI détectées, mise à jour de l\'interface');
+            setState(() {
+              _mockCourses = chapitres;
+              _isLoading = false; // Arrêter le loading une fois qu'on a les vraies données
+            });
+          } else {
+            Logger.info('ℹ️ Données OpenAI identiques, pas de mise à jour nécessaire');
+            // S'assurer que le loading s'arrête même si les données sont identiques
+            if (_isLoading) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          }
+        } else {
+          Logger.info('ℹ️ Pas de données OpenAI valides (source: $source, chapitres: ${chapitres.length})');
+        }
+      } else {
+        Logger.info('ℹ️ Aucun programme trouvé avec l\'ID: $programmeId');
+      }
+    } catch (e) {
+      Logger.error('❌ Erreur lors de la vérification des nouvelles données: $e');
+    }
+  }
+  
+  /// Compare deux listes pour voir si elles sont identiques
+  bool _listsEqual(List<String> list1, List<String> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) return false;
+    }
+    return true;
+  }
+  
+  /// Génère l'ID du programme pour la requête directe
+  String _generateProgrammeId() {
+    final year = DateTime.now().year;
+    final normalizedNiveau = widget.user.niveau.toLowerCase().replaceAll(' ', '_');
+    final optionsStr = _options.isEmpty ? '' : '_${_options.join('_').toLowerCase().replaceAll(' ', '_')}';
+    return 'complete_${normalizedNiveau}_$year$optionsStr';
+  }
+
 
   @override
   void dispose() {
     _matiereController.dispose();
     _niveauController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   /// Charge le programme depuis Firebase ou le génère
   Future<void> _loadProgramme() async {
-    if (_matiereController.text.trim().isEmpty || _niveauController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Veuillez renseigner une matière et un niveau'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+    // Si aucune matière sélectionnée, recharger le programme complet (niveau 1)
+    if (_matiereController.text.trim().isEmpty) {
+      await _loadCompleteProgramme();
       return;
     }
     
+    // Sinon, charger le programme détaillé de la matière (niveau 2)
     setState(() {
       _isLoading = true;
       _mockCourses = [];
@@ -127,17 +245,25 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
     try {
       // Normaliser les entrées utilisateur
       final matiere = TextNormalizer.normalizeMatiere(_matiereController.text);
-      final niveau = TextNormalizer.normalizeNiveau(_niveauController.text);
+      final niveau = TextNormalizer.normalizeNiveau(_niveauController.text.isNotEmpty 
+          ? _niveauController.text 
+          : widget.user.niveau);
       
       // Mettre à jour les contrôleurs avec les valeurs normalisées
       _matiereController.text = matiere;
       _niveauController.text = niveau;
       
-      // Charger le programme depuis Firebase ou le générer (avec optimisation par spécialités)
-      final programme = await _programmeService.getProgramme(
+      // Utiliser le nouveau système niveau 2 pour programme détaillé de la matière
+      final programme = await _programmeService.getProgrammeMatiere(
         matiere: matiere,
         niveau: niveau,
         options: _options,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          Logger.warning('⏰ Timeout programme matière - lancement génération en arrière-plan');
+          return null;
+        },
       );
       
       if (programme != null) {
@@ -147,207 +273,59 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
         });
         
         // Afficher un message selon la source
-        if (mounted && programme.source == 'generated' && programme.createdAt.isAfter(DateTime.now().subtract(Duration(seconds: 30)))) {
+        if (mounted && programme.source == 'generated_matiere' && programme.createdAt.isAfter(DateTime.now().subtract(Duration(seconds: 30)))) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Programme généré et sauvegardé !'),
+              content: Text('Programme détaillé généré et sauvegardé !'),
               backgroundColor: AppColors.success,
             ),
           );
         }
       } else {
-        setState(() {
-          _mockCourses = _generateMockCourses(matiere, niveau, _options); // Fallback
-          _isLoading = false;
-        });
-        
+        // Pas de programme trouvé - lancer la génération en arrière-plan
+        Logger.info('🚀 Aucun programme de matière trouvé, génération en cours...');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors du chargement - données temporaires affichées'),
-              backgroundColor: AppColors.warning,
-            ),
-          );
+          // Rester en état de chargement, programmer des vérifications
+          _scheduleDataRefresh();
         }
       }
     } catch (e) {
-      Logger.error('Erreur _loadProgramme: $e');
-      setState(() {
-        _mockCourses = []; // Fallback
-        _isLoading = false;
-      });
-      
+      Logger.error('❌ Erreur _loadProgramme: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        // En cas d'erreur, aussi programmer des vérifications plutôt qu'afficher du fallback
+        Logger.info('🔄 Erreur rencontrée, programmation des vérifications...');
+        _scheduleDataRefresh();
       }
     }
   }
 
-  /// Génère des cours mock adaptés uniquement à la matière et au niveau
-  /// Les options représentent les spécialités de l'étudiant mais n'influencent pas le programme de la matière demandée
-  List<String> _generateMockCourses(String matiere, String niveau, List<String> options) {
-    final matiereBase = matiere.toLowerCase();
-    final niveauBase = niveau.toLowerCase();
-    List<String> baseCourses = [];
+
+
+  /// Calcule la hauteur du header dynamiquement selon le contenu
+  double _calculateHeaderHeight() {
+    if (_isHeaderCollapsed) return 120;
     
-    if (matiereBase.contains('math')) {
-      if (niveauBase.contains('terminale')) {
-        baseCourses = [
-          'Limites et continuité des fonctions',
-          'Dérivation et applications',
-          'Fonction logarithme népérien',
-          'Fonction exponentielle',
-          'Intégration et primitives',
-          'Géométrie dans l\'espace: droites et plans',
-          'Suites numériques et convergence',
-          'Probabilités conditionnelles',
-        ];
-      } else if (niveauBase.contains('1ère') || niveauBase.contains('première')) {
-        baseCourses = [
-          'Second degré et paraboles',
-          'Dérivation: nombre dérivé et tangente',
-          'Suites arithmétiques et géométriques',
-          'Probabilités et variables aléatoires',
-          'Géométrie repérée dans le plan',
-          'Trigonométrie et cercle trigonométrique',
-        ];
-      } else {
-        baseCourses = [
-          'Les nombres et calculs',
-          'Géométrie plane', 
-          'Fonctions et représentations',
-          'Statistiques et probabilités',
-        ];
+    // Hauteur de base pour le header étendu
+    double baseHeight = 280;
+    
+    // Ajouter de l'espace si le sous-titre est long (matière spécifique)
+    if (_matiereController.text.trim().isNotEmpty) {
+      String subtitle = 'Programme détaillé de ${_matiereController.text}';
+      
+      // Estimation plus précise basée sur la longueur du texte et la taille d'écran
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isSmallScreen = screenWidth < 360;
+      
+      // Sur petit écran, les textes longs passent plus facilement sur 2 lignes
+      int threshold = isSmallScreen ? 25 : 35;
+      
+      if (subtitle.length > threshold) {
+        baseHeight += isSmallScreen ? 35 : 25; // Plus d'espace sur petit écran
       }
-    } else if (matiereBase.contains('fran') || matiereBase.contains('français')) {
-      if (niveauBase.contains('terminale')) {
-        baseCourses = [
-          'La littérature d\'idées: Montaigne, La Bruyère',
-          'Le théâtre: Marivaux et Beaumarchais',
-          'La poésie du XIXe au XXIe siècle: Baudelaire, Apollinaire',
-          'Le roman et le récit: Proust, Céline',
-          'L\'argumentation et la dissertation',
-          'Analyse stylistique et commentaire composé',
-          'Histoire littéraire: les mouvements artistiques',
-          'Expression orale et débat argumenté',
-        ];
-      } else if (niveauBase.contains('1ère') || niveauBase.contains('première')) {
-        baseCourses = [
-          'Le roman et ses personnages: Balzac, Stendhal',
-          'Le théâtre du XVIIe siècle: Molière, Racine',
-          'La poésie du Moyen Âge au XVIIIe siècle',
-          'La question de l\'Homme dans l\'argumentation',
-          'L\'écriture poétique et la quête du sens',
-          'Le personnage de roman du XVIIe siècle à nos jours',
-        ];
-      } else {
-        baseCourses = [
-          'Lecture et compréhension de textes',
-          'Expression écrite et rédaction',
-          'Grammaire et syntaxe',
-          'Vocabulaire et étymologie',
-        ];
-      }
-    } else if (matiereBase.contains('phys') || matiereBase.contains('chimie')) {
-      if (niveauBase.contains('terminale')) {
-        baseCourses = [
-          'Mécanique: mouvement dans un champ',
-          'Électricité: circuits RC et RL',
-          'Ondes: interférences et diffraction',
-          'Optique: lunettes et télescopes',
-          'Chimie organique: polymères et biomolécules',
-          'Cinétique chimique et catalyse',
-          'Thermodynamique: machines thermiques',
-        ];
-      } else {
-        baseCourses = [
-          'Mécanique et forces',
-          'Électricité et circuits',
-          'Optique et lumière',
-          'Réactions chimiques',
-          'Atomistique',
-        ];
-      }
-    } else if (matiereBase.contains('svt') || matiereBase.contains('bio')) {
-      if (niveauBase.contains('terminale')) {
-        baseCourses = [
-          'Génétique et évolution: brassage génétique',
-          'Géologie: histoire de la Terre et datation',
-          'Écosystèmes et dynamique des populations',
-          'Neurobiologie et comportement',
-          'Corps humain: reproduction et sexualité',
-          'Immunologie et défenses de l\'organisme',
-          'Photosynthèse et respiration cellulaire',
-        ];
-      } else {
-        baseCourses = [
-          'La cellule et ses constituants',
-          'Reproduction et hérédité',
-          'Écosystèmes et chaînes alimentaires',
-          'Corps humain et fonctions vitales',
-        ];
-      }
-    } else if (matiereBase.contains('hist') || matiereBase.contains('géo')) {
-      if (niveauBase.contains('terminale')) {
-        baseCourses = [
-          'Histoire: la Seconde Guerre mondiale',
-          'Histoire: la guerre froide (1947-1991)',
-          'Géographie: mondialisation et territoires',
-          'Géographie: dynamiques territoriales de la France',
-          'Histoire: gouverner la France depuis 1946',
-          'Géographie: l\'Asie du Sud et de l\'Est',
-        ];
-      } else {
-        baseCourses = [
-          'Histoire: l\'Europe et le monde au XVIIIe siècle',
-          'Histoire: révolutions et nationalismes',
-          'Géographie: populations et développement',
-          'Géographie: gérer les ressources terrestres',
-        ];
-      }
-    } else if (matiereBase.contains('angl')) {
-      if (niveauBase.contains('terminale')) {
-        baseCourses = [
-          'Myths and heroes: American Dream',
-          'Spaces and exchanges: globalization',
-          'Places and forms of power: democracy',
-          'The idea of progress: technological advances',
-          'Literature: Shakespeare and modern authors',
-          'Essay writing and argumentation',
-        ];
-      } else {
-        baseCourses = [
-          'Grammar fundamentals and tenses',
-          'Vocabulary building through themes',
-          'Reading comprehension strategies',
-          'Writing skills development',
-        ];
-      }
-    } else {
-      // Cours générique pour toute autre matière
-      baseCourses = [
-        'Introduction à la $matiere',
-        'Concepts fondamentaux',
-        'Méthodes et techniques',
-        'Applications pratiques',
-        'Exercices et révisions',
-        'Approfondissements',
-        'Synthèse et évaluation',
-      ];
     }
     
-    // Les options représentent les spécialités choisies par l'étudiant
-    // mais n'influencent pas le programme de la matière demandée
-    // (un cours de français reste un cours de français, même si l'étudiant a pris option maths)
-    
-    return baseCourses;
+    return baseHeight;
   }
-
 
   /// Ajoute une nouvelle option
   void _addOption() {
@@ -392,6 +370,20 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
     setState(() {
       _options.removeAt(index);
     });
+  }
+
+  /// Gère la sélection d'un élément (matière ou chapitre) dans la liste
+  Future<void> _handleCourseSelection(String selectedItem) async {
+    // Si aucune matière sélectionnée dans le champ, cela signifie qu'on est en mode niveau 1 (liste des matières)
+    if (_matiereController.text.trim().isEmpty) {
+      // L'utilisateur a cliqué sur une matière, charger le programme détaillé
+      _matiereController.text = selectedItem;
+      await _loadProgramme(); // Cela va maintenant utiliser getProgrammeMatiere
+      return;
+    }
+    
+    // Sinon, on est en niveau 2 (liste des chapitres), naviguer vers les cours
+    await _navigateToCourse(selectedItem);
   }
 
   /// Navigate vers les cours disponibles pour ce chapitre avec popup de sélection
@@ -569,46 +561,6 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
   }
 
 
-  /// Affiche le dialogue pour générer de nouveaux cours
-  void _showGenerateCourseDialog(String courseTitle, String matiere, String niveau) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Générer des cours'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Aucun cours trouvé pour "$courseTitle".',
-              style: AppTextStyles.body,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Voulez-vous générer les types de cours suivants ?',
-              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
-            ),
-            SizedBox(height: 12),
-            ...CourseType.values.map((type) => ListTile(
-              leading: Icon(_getCourseIcon(type), color: AppColors.primary),
-              title: Text(_getCourseTypeLabel(type)),
-              trailing: Icon(Icons.add_circle_outline, color: AppColors.primary),
-              onTap: () {
-                Navigator.of(context).pop();
-                _generateCourse(courseTitle, matiere, niveau, type);
-              },
-            )),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Annuler'),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Affiche le dialogue de sélection de difficulté QCM
   void _selectQCMDifficulty(String courseTitle, String matiere, String niveau) {
@@ -937,9 +889,9 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
     return Container(
       padding: EdgeInsets.fromLTRB(
         isSmallScreen ? AppSpacing.md : AppSpacing.lg,
-        MediaQuery.of(context).padding.top + AppSpacing.md,
+        MediaQuery.of(context).padding.top + AppSpacing.lg,
         isSmallScreen ? AppSpacing.md : AppSpacing.lg,
-        AppSpacing.lg,
+        AppSpacing.md,
       ),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -957,10 +909,34 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Titre principal
           Row(
             children: [
+              // Bouton retour si on est en niveau 2 (matière sélectionnée)
+              if (_matiereController.text.trim().isNotEmpty) ...[
+                GestureDetector(
+                  onTap: () {
+                    _matiereController.clear();
+                    _loadCompleteProgramme();
+                  },
+                  child: Container(
+                    width: isSmallScreen ? 36 : 44,
+                    height: isSmallScreen ? 36 : 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back,
+                      color: AppColors.white,
+                      size: isSmallScreen ? 20 : 24,
+                    ),
+                  ),
+                ),
+                SizedBox(width: isSmallScreen ? AppSpacing.sm : AppSpacing.md),
+              ],
               Container(
                 width: isSmallScreen ? 36 : 44,
                 height: isSmallScreen ? 36 : 44,
@@ -969,7 +945,7 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(
-                  Icons.school,
+                  _matiereController.text.trim().isEmpty ? Icons.school : Icons.subject,
                   color: AppColors.white,
                   size: isSmallScreen ? 20 : 24,
                 ),
@@ -988,7 +964,9 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
                       ),
                     ),
                     Text(
-                      'Explorez le programme scolaire complet',
+                      _matiereController.text.trim().isEmpty
+                          ? 'Explorez le programme scolaire complet'
+                          : 'Programme détaillé de ${_matiereController.text}',
                       style: AppTextStyles.body.copyWith(
                         color: AppColors.white.withValues(alpha: 0.9),
                         fontSize: isSmallScreen ? 14 : null,
@@ -1011,95 +989,113 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
 
   // Section de recherche moderne
   Widget _buildModernSearchSection() {
-    return Column(
-      children: [
-        // Champ niveau
-        TextField(
-          controller: _niveauController,
-          style: AppTextStyles.body.copyWith(color: AppColors.white),
-          decoration: InputDecoration(
-            hintText: 'Niveau (Ex: Terminale, L1, BTS...)',
-            hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
-            prefixIcon: const Icon(Icons.school, color: AppColors.white),
-            filled: true,
-            fillColor: AppColors.white.withValues(alpha: 0.2),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: AppSpacing.md),
-        
-        // Champ matière
-        TextField(
-          controller: _matiereController,
-          style: AppTextStyles.body.copyWith(color: AppColors.white),
-          decoration: InputDecoration(
-            hintText: 'Matière (Ex: Mathématiques, Physique...)',
-            hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
-            prefixIcon: const Icon(Icons.subject, color: AppColors.white),
-            filled: true,
-            fillColor: AppColors.white.withValues(alpha: 0.2),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: AppSpacing.lg),
-        
-        // Bouton de recherche sans fond
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _isLoading ? null : _loadProgramme,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_isLoading) ...[
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'Recherche...',
-                      style: AppTextStyles.button.copyWith(
-                        color: AppColors.white,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ] else ...[
-                    Icon(
-                      Icons.search,
-                      color: AppColors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'Rechercher le programme',
-                      style: AppTextStyles.button.copyWith(
-                        color: AppColors.white,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ],
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 200), // Limiter la hauteur
+      child: SingleChildScrollView( // Rendre scrollable si nécessaire
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Prendre le minimum d'espace
+          children: [
+            // Champ niveau
+            TextField(
+              controller: _niveauController,
+              style: AppTextStyles.body.copyWith(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: 'Niveau (Ex: Terminale, L1, BTS...)',
+                hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
+                prefixIcon: const Icon(Icons.school, color: AppColors.white),
+                filled: true,
+                fillColor: AppColors.white.withValues(alpha: 0.2),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Réduire le padding
               ),
             ),
-          ),
+            
+            const SizedBox(height: AppSpacing.sm), // Réduire l'espacement
+            
+            // Champ matière
+            TextField(
+              controller: _matiereController,
+              style: AppTextStyles.body.copyWith(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: 'Matière (Ex: Mathématiques, Physique...)',
+                hintStyle: AppTextStyles.body.copyWith(color: AppColors.white.withValues(alpha: 0.7)),
+                prefixIcon: const Icon(Icons.subject, color: AppColors.white),
+                filled: true,
+                fillColor: AppColors.white.withValues(alpha: 0.2),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Réduire le padding
+              ),
+            ),
+            
+            const SizedBox(height: AppSpacing.md), // Réduire l'espacement
+            
+            // Bouton de recherche sans fond
+            SizedBox(
+              width: double.infinity,
+              height: 44, // Réduire la hauteur
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isLoading ? null : _loadProgramme,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_isLoading) ...[
+                          SizedBox(
+                            width: 18, // Réduire la taille
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Flexible( // Rendre flexible
+                            child: Text(
+                              'Recherche...',
+                              style: AppTextStyles.button.copyWith(
+                                color: AppColors.white,
+                                fontSize: 14, // Réduire la taille
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ] else ...[
+                          Icon(
+                            Icons.search,
+                            color: AppColors.white,
+                            size: 18, // Réduire la taille
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Flexible( // Rendre flexible
+                            child: Text(
+                              'Rechercher le programme',
+                              style: AppTextStyles.button.copyWith(
+                                color: AppColors.white,
+                                fontSize: 14, // Réduire la taille
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -1223,24 +1219,95 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyLight,
-      body: Column(
-            children: [
-              // Header moderne avec dégradé
-              _buildModernHeader(),
-              
-              // Affichage des spécialités de l'utilisateur
-              if (_options.isNotEmpty) _buildSpecialitesSection(),
-              
-              // Liste des cours
-              Expanded(
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // Header collapsible avec hauteur dynamique
+          SliverAppBar(
+            expandedHeight: _calculateHeaderHeight(),
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: (_matiereController.text.trim().isNotEmpty && _isHeaderCollapsed)
+                ? IconButton(
+                    icon: Icon(Icons.arrow_back, color: AppColors.white),
+                    onPressed: () {
+                      _matiereController.clear();
+                      _loadCompleteProgramme();
+                    },
+                  )
+                : null,
+            title: AnimatedOpacity(
+              opacity: _isHeaderCollapsed ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(
+                      _matiereController.text.trim().isEmpty ? Icons.school : Icons.subject,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Programme',
+                          style: AppTextStyles.h2.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          _matiereController.text.trim().isEmpty
+                              ? 'Explorez le programme scolaire complet'
+                              : 'Programme détaillé de ${_matiereController.text}',
+                          style: AppTextStyles.body.copyWith(
+                            color: AppColors.white.withValues(alpha: 0.9),
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildModernHeader(),
+            ),
+          ),
+          
+          // Section spécialités si présente
+          if (_options.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _buildSpecialitesSection(),
+            ),
+          
+          // Contenu principal - état de chargement
+          if (_isLoading)
+            SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            )
+          else if (_mockCourses.isEmpty)
+            SliverFillRemaining(
+              child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.md),
-                  child: _isLoading 
-                    ? Center(child: CircularProgressIndicator(color: AppColors.primary))
-                    : _mockCourses.isEmpty 
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xxxl),
+                  padding: const EdgeInsets.all(AppSpacing.xxxl),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -1260,27 +1327,34 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           Text(
-                            'Renseignez une matière et un niveau pour découvrir le programme officiel',
+                            _matiereController.text.trim().isEmpty
+                                ? 'Votre programme complet va apparaître ici.\nAssurez-vous d\'avoir renseigné votre niveau dans le profil.'
+                                : 'Aucun chapitre trouvé pour cette matière.\nEssayez de régénérer le programme.',
                             style: AppTextStyles.body.copyWith(color: AppColors.grey500),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           Text(
-                            'Exemple: Terminale, Mathématiques',
+                            _matiereController.text.trim().isEmpty
+                                ? 'Exemple: Renseignez "Terminale" dans votre profil'
+                                : 'Exemple: Effacez la matière pour revenir au programme complet',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    itemCount: _mockCourses.length,
-                    itemBuilder: (context, index) {
-                      final course = _mockCourses[index];
+                  ),
+                )
+            else
+              // Liste des cours
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final course = _mockCourses[index];
                       return Container(
                         margin: const EdgeInsets.only(bottom: AppSpacing.md),
                         decoration: BoxDecoration(
@@ -1313,7 +1387,9 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
                             ),
                           ),
                           subtitle: Text(
-                            'Cliquez pour explorer les ressources disponibles',
+                            _matiereController.text.trim().isEmpty 
+                                ? 'Cliquez pour voir le programme détaillé'
+                                : 'Cliquez pour explorer les ressources disponibles',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.grey500,
                             ),
@@ -1323,13 +1399,13 @@ class _ProgrammeScreenWorkingState extends State<ProgrammeScreenWorking> {
                             size: 16,
                             color: AppColors.grey400,
                           ),
-                          onTap: () => _navigateToCourse(course),
+                          onTap: () => _handleCourseSelection(course),
                         ),
                       );
                     },
+                    childCount: _mockCourses.length,
                   ),
                 ),
-              ),
         ],
       ),
     );

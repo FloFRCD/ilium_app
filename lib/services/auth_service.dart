@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../models/progression_model.dart';
 import '../models/freemium_limitations_model.dart';
 import 'firestore_service.dart';
 import 'user_progression_service.dart';
 import '../utils/progression_migration.dart';
+import '../utils/logger.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -29,46 +29,46 @@ class AuthService {
     DateTime? birthDate,
   }) async {
     try {
-      debugPrint('🚀 DÉBUT registerWithEmailAndPassword');
-      debugPrint('  email: $email');
-      debugPrint('  password: [${password.length} caractères]');
-      debugPrint('  pseudo: $pseudo');
-      debugPrint('  niveau: $niveau');
-      debugPrint('  options: $options');
-      debugPrint('  birthDate: $birthDate');
+      Logger.info('🚀 DÉBUT registerWithEmailAndPassword');
+      Logger.debug('  email: $email');
+      Logger.debug('  password: [${password.length} caractères]');
+      Logger.debug('  pseudo: $pseudo');
+      Logger.debug('  niveau: $niveau');
+      Logger.debug('  options: $options');
+      Logger.debug('  birthDate: $birthDate');
       
       // Créer le compte Firebase Auth
-      debugPrint('🔥 Tentative création compte Firebase Auth...');
+      Logger.info('🔥 Tentative création compte Firebase Auth...');
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      debugPrint('✅ Compte Firebase Auth créé avec succès');
+      Logger.info('✅ Compte Firebase Auth créé avec succès');
       
       User? firebaseUser = result.user;
       if (firebaseUser != null) {
         // Mettre à jour le nom d'affichage
-        debugPrint('🔄 Mise à jour du nom d\'affichage...');
+        Logger.debug('🔄 Mise à jour du nom d\'affichage...');
         try {
           await firebaseUser.updateDisplayName(pseudo);
-          debugPrint('✅ Nom d\'affichage mis à jour');
+          Logger.debug('✅ Nom d\'affichage mis à jour');
         } catch (e) {
-          debugPrint('❌ Erreur mise à jour nom: $e');
+          Logger.warning('❌ Erreur mise à jour nom: $e');
           // Continue même si la mise à jour du nom échoue
         }
         
         DateTime now = DateTime.now();
         
-        debugPrint('🔄 Création du profil utilisateur...');
-        debugPrint('  uid: ${firebaseUser.uid}');
-        debugPrint('  pseudo: $pseudo');
-        debugPrint('  email: $email');
-        debugPrint('  niveau: $niveau');
-        debugPrint('  options: $options');
-        debugPrint('  birthDate: $birthDate');
+        Logger.info('🔄 Création du profil utilisateur...');
+        Logger.debug('  uid: ${firebaseUser.uid}');
+        Logger.debug('  pseudo: $pseudo');
+        Logger.debug('  email: $email');
+        Logger.debug('  niveau: $niveau');
+        Logger.debug('  options: $options');
+        Logger.debug('  birthDate: $birthDate');
         
         // Créer d'abord la progression
-        debugPrint('🔄 Création de GlobalProgressionModel...');
+        Logger.debug('🔄 Création de GlobalProgressionModel...');
         GlobalProgressionModel progression;
         try {
           progression = GlobalProgressionModel(
@@ -87,25 +87,25 @@ class AuthService {
             achievements: [],
             overallAverageScore: 0.0,
           );
-          debugPrint('✅ GlobalProgressionModel créé avec succès');
+          Logger.debug('✅ GlobalProgressionModel créé avec succès');
         } catch (e) {
-          debugPrint('❌ Erreur lors de la création de GlobalProgressionModel: $e');
+          Logger.error('❌ Erreur lors de la création de GlobalProgressionModel: $e');
           rethrow;
         }
         
         // Créer les limitations
-        debugPrint('🔄 Création de FreemiumLimitationsModel...');
+        Logger.debug('🔄 Création de FreemiumLimitationsModel...');
         FreemiumLimitationsModel limitations;
         try {
           limitations = FreemiumLimitationsModel.free();
-          debugPrint('✅ FreemiumLimitationsModel créé avec succès');
+          Logger.debug('✅ FreemiumLimitationsModel créé avec succès');
         } catch (e) {
-          debugPrint('❌ Erreur lors de la création de FreemiumLimitationsModel: $e');
+          Logger.error('❌ Erreur lors de la création de FreemiumLimitationsModel: $e');
           rethrow;
         }
         
         // Créer le profil utilisateur dans Firestore
-        debugPrint('🔄 Création de UserModel...');
+        Logger.debug('🔄 Création de UserModel...');
         UserModel newUser;
         try {
           newUser = UserModel(
@@ -131,41 +131,41 @@ class AuthService {
             createdAt: now,
             updatedAt: now,
           );
-          debugPrint('✅ UserModel créé avec succès');
+          Logger.debug('✅ UserModel créé avec succès');
         } catch (e) {
-          debugPrint('❌ Erreur lors de la création de UserModel: $e');
+          Logger.error('❌ Erreur lors de la création de UserModel: $e');
           rethrow;
         }
         
         // Sauvegarder dans Firestore
-        debugPrint('🔥 Tentative de sauvegarde dans Firestore...');
+        Logger.info('🔥 Tentative de sauvegarde dans Firestore...');
         bool firestoreSaved = await _firestoreService.saveUser(newUser);
         
         if (!firestoreSaved) {
-          debugPrint('❌ Échec de la sauvegarde Firestore');
+          Logger.error('❌ Échec de la sauvegarde Firestore');
           // L'utilisateur Firebase Auth existe mais pas les données Firestore
           // On peut soit supprimer le compte Firebase, soit continuer sans les données
           return AuthResult.error('Erreur lors de la sauvegarde des données utilisateur');
         }
         
-        debugPrint('✅ Utilisateur sauvegardé dans Firestore');
+        Logger.info('✅ Utilisateur sauvegardé dans Firestore');
         return AuthResult.success(newUser);
       } else {
         return AuthResult.error('Erreur lors de la création du compte');
       }
     } catch (e) {
-      debugPrint('🚨 ERREUR COMPLÈTE D\'INSCRIPTION:');
-      debugPrint('   Type: ${e.runtimeType}');
-      debugPrint('   Message: $e');
+      Logger.error('🚨 ERREUR COMPLÈTE D\'INSCRIPTION:');
+      Logger.error('   Type: ${e.runtimeType}');
+      Logger.error('   Message: $e');
       
       if (e is FirebaseAuthException) {
-        debugPrint('   Code Firebase: ${e.code}');
-        debugPrint('   Message Firebase: ${e.message}');
-        debugPrint('   Plugin: ${e.plugin}');
+        Logger.error('   Code Firebase: ${e.code}');
+        Logger.error('   Message Firebase: ${e.message}');
+        Logger.error('   Plugin: ${e.plugin}');
       }
       
       String errorMessage = _getAuthErrorMessage(e);
-      debugPrint('   Message traité: $errorMessage');
+      Logger.error('   Message traité: $errorMessage');
       
       return AuthResult.error(errorMessage);
     }
@@ -223,15 +223,15 @@ class AuthService {
         }
         
         // Si l'utilisateur n'existe pas dans Firestore, créer un profil temporaire
-        debugPrint('⚠️ Utilisateur Firebase trouvé mais pas de profil Firestore - création d\'un profil temporaire');
+        Logger.warning('⚠️ Utilisateur Firebase trouvé mais pas de profil Firestore - création d\'un profil temporaire');
         return _createTemporaryUserProfile(firebaseUser);
         
       } catch (e) {
-        debugPrint('🚨 Erreur Firestore (probablement permissions): $e');
+        Logger.error('🚨 Erreur Firestore (probablement permissions): $e');
         
         // En cas d'erreur de permissions, créer un profil temporaire
         if (e.toString().contains('permission-denied')) {
-          debugPrint('🔧 Création d\'un profil temporaire en attendant la configuration Firestore');
+          Logger.info('🔧 Création d\'un profil temporaire en attendant la configuration Firestore');
           return _createTemporaryUserProfile(firebaseUser);
         }
         
@@ -288,7 +288,7 @@ class AuthService {
       await _auth.signOut();
       return true;
     } catch (e) {
-      debugPrint('Erreur déconnexion: $e');
+      Logger.error('Erreur déconnexion: $e');
       return false;
     }
   }
